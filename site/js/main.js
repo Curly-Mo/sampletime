@@ -24,43 +24,43 @@ var svg = d3.select("body").append("svg")
   .append("g")
     .attr("transform", "translate(" + margin.left + "," + margin.right + ")")
     .call(zoom);
-
+    // .style("z-index",-1);
+//
 var rect = svg.append("rect")
     .attr("width", width)
     .attr("height", height)
     .style("fill", "none")
-    .style("pointer-events", "all");
+    .style("pointer-events", "all")
+    .style("z-index", -1);
 
-var container = svg.append("g");
+var div = d3.select("body").append("div")
+    .attr("class", "tooltip")
+    .style("opacity", 0);
 
+var container = svg.append("g")
+var	audioContext = new AudioContext();
+var thedata     = [];
+var theclasses  = [];
+var trackUrls  = [];
+var xRandOffset = 200;
+var SCALE_FLAG = 0;
+var trackUrls = [];
 
-//
-// ======== I RUN CALLED ON LOAD, I READ THE JSON AND CALL THE INITS ===================
+var trackList = [];
+var returnedSounds = [];
+var returnedAnalysis = [];
+var spreads = [];
+var energies = [];
+var globalSounds = [];
 
-//
+// -----------------------------------------------------------------------------
 
-function init() {
-  console.log("init")
+window.onload = function(){
+  console.log("init - test")
 	// Display a loading icon in our display element
-	$('#feed').html('<span><img src="images/lightbox-ico-loading.gif" /></span>');
+	// $('#feed').html('<span><img src="images/lightbox-ico-loading.gif" /></span>');
 
-  $.getJSON( "filedata.json", function( data ) {
-    wholedata = data;
-    // console.log(data)
-    $.each( data, function( key, val ) {
-      $.each( val, function(key, val){
-        theclasses.push(parseInt(val.class))
-        // console.log(val.class)
-        thedata.push(val.filepath)
-      })
-    });
-    // console.log(thedata,"this is the data")
-    loadTracks(thedata);
-    circleInit(thedata);
-  });
-  // got all data, load files
-	console.log("audio context is built, buffers loaded");
-
+	console.log("audio context is built");
 	MAX_SIZE = Math.max(4,Math.floor(audioContext.sampleRate/5000));	// corresponds to a 5kHz signal
 	var request = new XMLHttpRequest();
 	request.open("GET", "", true);
@@ -71,21 +71,61 @@ function init() {
 		} );
 	}
 	request.send();
-}
+
+  token = "6111dd7939cc531db688360f2d70e96661531292";
+  freesound.setToken(token);
+
+  var fields = 'id,name,url';
+  var query = "kick"
+  var page = 1
+  var page_size = 5;
+  var filter = "percussion"
+  var sort = "score"
+
+  freesound.textSearch(query, {page:page, page_size: page_size, filter:filter, sort:sort, fields:fields},
+      function(sounds){                                         // for each sound returned from search
+        var msg = ""
+        // globalSounds = sounds;  //DEBUG
+        console.log(sounds)
+        returnedSounds = sounds.results;
+        circleInit(returnedSounds);
+
+        for (i = 0; i <= returnedSounds.length-1; i++){
+          // console.log(returnedSounds)
+          if (typeof sounds.getSound(i).id != "undefined") {
+            freesound.getSound(sounds.getSound(i).id,
+                function(sound){
+                  globalSounds.push(sound);
+                  trackList.push(sound.previews['preview-hq-mp3']);
+
+                  sound.getAnalysis(null,function(analysis){
+                    returnedAnalysis.push(analysis);
+                    spreads.push(analysis.lowlevel.spectral_spread.dmean);
+                    energies.push(analysis.lowlevel.spectral_energy.dmean);
+                    console.log("analysis ",analysis);
+                  });
+              });
+          }
+        }
+      });
+  // waitRoutine();
+};
+
 
 //
 // ======== I LOAD THE AUDIO FOR EVERY TRACK IN THE JSON FILE ============================
 //
 
 function loadTracks(data) {
-     for (var i = 0; i < data.length; i++) {
-         trackUrls.push(data[i]);
-        //  console.log(data[i])
-        //  console.log(trackUrls[i])
-     };
-     bufferLoader = new BufferLoader(audioContext, trackUrls, bufferLoadCompleted);
-     bufferLoader.load(false);
-     //  return loaderDefered.promise;
+    console.log("loading tracks")
+    // console.log(data)
+    for (var i = 0; i < data.length; i++) {
+       trackUrls.push(data[i]);
+    };
+    bufferLoader = new BufferLoader(audioContext, trackUrls, bufferLoadCompleted);
+    bufferLoader.load(false);
+
+    // return loaderDefered.promise;
  }
 
 //
@@ -100,34 +140,31 @@ function bufferLoadCompleted() {
 // ======== I AM CALLED POST JSON, TO CREATE NDOES FOR EACH ELEM in DATA ==================
 //
 
-function circleInit(data){
- dot = container.append("g")
-     .attr("class", "dot")
-   .selectAll("circle")
-     .data(data)
-   .enter().append("circle")
+function circleUpdate(){
+  // console.log("circle init data = ",data)
+  // console.log(data)
+ dot = container.selectAll("circle")
+     .attr("id", function(d,i) {
+      //  console.log("-- ",d," - ",i);
+       return i;
+     })
      .attr("cx", function(d,i) {
-      //  var clientWidth = document.getElementById('svgDiv').offsetWidth;
-       var clientWidth = window.innerWidth;
-       if(theclasses[i] % 2 == 0){
-         x = clientWidth/4 - clientWidth/16+ Math.floor(Math.random()*xRandOffset);
+       if (typeof(returnedAnalysis[i] != "undefined")){
+        //  console.log(returnedAnalysis[i])
+        console.log("xx ",Math.floor(returnedAnalysis[i].lowlevel.spectral_spread.dmean/math.max(spreads)*500));
+        x = Math.floor(returnedAnalysis[i].lowlevel.spectral_spread.dmean/math.max(spreads)*500);
+         return x;
+       }else{
+         return 500;
        }
-       else {
-         x = clientWidth*3/4- clientWidth/8+ Math.floor(Math.random()*xRandOffset);
-       }
-       return x;
+
      })
      .attr("cy", function(d,i) {
-      //  var clientHeight = document.getElementById('svgDiv').offsetHeight;
-       var clientHeight = window.innerHeight;
-       clientHeight = clientHeight - 200;
-       if(theclasses[i] <= 2){
-         y = clientHeight/4 - clientHeight/8 + Math.floor(Math.random()*xRandOffset);
-       }
-       else {
-         y = clientHeight*3/4+ Math.floor(Math.random()*xRandOffset);
-       }
-       return y;
+      // console.log(returnedAnalysis[i].lowlevel.spectral_rms.dmean, )
+      console.log("yy ", returnedAnalysis[i].lowlevel.spectral_energy.dmean/math.max(energies)*100);
+      y = Math.floor(returnedAnalysis[i].lowlevel.spectral_energy.dmean/math.max(energies)*100);
+
+       return 500;
      })
      .call(drag)
      .style("fill", function(d,i) {
@@ -154,72 +191,119 @@ function circleInit(data){
      .attr("r", function(d,i){
          var str1;
          var radius;
-         switch (theclasses[i]) {
-           case 1:
-             str1 = "wholedata.kick.k";
-             str1 = str1.concat((i+1).toString());
-             str1 = str1.concat(".zcr");
-             radius = eval(str1)*20;
-             return radius;
+        if(returnedSounds){
+          // console.log(this.id)
+          // console.log("r ",-2*Math.log(returnedAnalysis[i].lowlevel.average_loudness));
+          // console.log(returnedAnalysis[this.id])
+          r = -2*Math.log(returnedAnalysis[i].lowlevel.average_loudness);
 
-           case 2:
-             str1 = "wholedata.snare.s";
-             str1 = str1.concat((i-5).toString());
-             str1 = str1.concat(".zcr");
-             radius = eval(str1)*20;
-             return radius;
+        }else{
+          r = 10;
+        }
+        // d.getAnalysis();
+        return r;
 
-           case 3:
-             str1 = "wholedata.hihat.h";
-             str1 = str1.concat((i-11).toString());
-             str1 = str1.concat(".zcr");
-             radius = eval(str1)*20;
-             return radius;
-
-           case 4:
-             str1 = "wholedata.crash.c";
-             str1 = str1.concat((i-17).toString());
-             str1 = str1.concat(".zcr");
-             radius = eval(str1)*20;
-             return radius;
-
-             break;
-           default:
-             return 10;
-       }
      })
-     .on("click", function(d){
-       d.charAt(d.length-5)
-       // HACK:
-       if(d.substring(9,10) == "k"){
-         var val = d.charAt(d.length-5)-1;
-         // console.log("kick ",val);
-       }else if (d.substring(9,10) == "s") {
-         var val = d.charAt(d.length-5)-1 + 6
-         // console.log("snare ",val);
-       }else if (d.substring(9,10) == "h") {
-         var val = d.charAt(d.length-5)-1 + 12;
-         // console.log("hat ",val);
-         }else if (d.substring(9,10) == "c") {
-         var val = d.charAt(d.length-5)-1 + 18;
-         // console.log("crash",val);
-       }
-       var samp = bufferLoader.bufferList[val];
+     .on("click", function(d,i){
+
+        // console.log(Math.floor(returnedAnalysis[i].lowlevel.spectral_centroid.dmean))
+       var samp = bufferLoader.bufferList[this.id];
        // console.log(samp)
-       playSound(samp,audioContext.currentTime)
-       // k 0 - 5
-       // s 6 - 11
-       // h 12 - 17
-       // c 18 - 23
-       ;
+       playSound(samp,audioContext.currentTime);
+
+       returnedSounds[i].getComments(function(comments){
+         console.log(comments)
+
+       });
+
      });
    }
+
+
+   function circleInit(data){
+     // console.log("circle init data = ",data)
+     // console.log(data)
+    dot = container.append("g")
+        .attr("class", "dot")
+      .selectAll("circle")
+        .data(data)
+      .enter().append("circle")
+        .attr("id", function(d,i) {
+         //  console.log("-- ",d," - ",i);
+          return i;
+        })
+        .attr("cx", function(d,i) {
+         //  var clientWidth = document.getElementById('svgDiv').offsetWidth;
+          var clientWidth = window.innerWidth;
+          x = (clientWidth/2 -clientWidth/16)+ Math.floor(Math.random()*xRandOffset);
+          return x;
+        })
+        .on("mouseover", function(d) {
+          if(SCALE_FLAG == 1){
+            div.transition()
+                .duration(200)
+                .style("opacity", .9);
+            div .html("duncan" + "<br/>"  + d.close)
+                .style("left", (d3.event.pageX) + "px")
+                .style("top", (d3.event.pageY - 28) + "px");
+          }
+        })
+        .attr("cy", function(d,i) {
+         //  var clientHeight = document.getElementById('svgDiv').offsetHeight;
+          var clientHeight = window.innerHeight;
+          clientHeight = clientHeight - 200;
+          y = clientHeight/2 + Math.floor(Math.random()*xRandOffset);
+          return y;
+        })
+        .call(drag)
+        .style("fill", function(d,i) {
+          // console.log(typeof(theclasses[i]),theclasses[i]);
+          switch (theclasses[i]) {
+            case 1:
+              thecolour = "lightcoral";
+              return thecolour;
+            case 2:
+              thecolour = "orange";
+              return thecolour;
+            case 3:
+              thecolour = "red";
+              return thecolour;
+            case 4:
+              thecolour = "blue";
+              return thecolour;
+              break;
+            default:
+              thecolour = "black";
+              return thecolour;
+          }
+        })
+        .attr("r", function(d){
+            var str1;
+            var radius;
+           if(returnedSounds){
+             console.log("radius! ",returnedAnalysis.length)
+             r = 15;
+           }else{
+             r = 20;
+           }
+           // d.getAnalysis();
+           return r;
+
+        })
+        .on("click", function(d){
+          var samp = bufferLoader.bufferList[this.id];
+          // console.log(samp)
+          // playSound(samp,audioContext.currentTime);
+
+        });
+      }
 
  //
  // ======== I PLAY SOUNDS - I AM WEB AUDIO ========================================
  //
 
 function playSound(buffer, time) {
+
     // console.log("sampletime")
     var source = audioContext.createBufferSource();
     source.buffer = buffer;
@@ -227,6 +311,72 @@ function playSound(buffer, time) {
    source.start(time);
 }
 
+
+// separate function to set these
+var keyCodeOne = 97;
+var keyCodeTwo = 115;
+var keyCodeThree = 100;
+var keyCodeFour = 102;
+
+
+// handles the key detection for triggering samples from keyboard
+document.onkeypress = function (e) {
+    e = e || window.event;
+    // console.log(e.keyCode)
+
+    switch (e.keyCode) {
+      case keyCodeOne:
+        triggerSamples("#one");
+        break;
+      case keyCodeTwo:
+        triggerSamples("#two");
+        break;
+      case keyCodeThree:
+        triggerSamples("#three");
+        break;
+      case keyCodeFour:
+        triggerSamples("#four");
+        break;
+      default:
+    }
+};
+
+// triggers samples in regions
+function triggerSamples(id){
+  var offsets = $(id).offset();
+  var top = offsets.top - 45;
+  var left = offsets.left;
+  var bottom = offsets;
+
+  console.log("id ",id)
+  // console.log("bottom = ",bottom);
+  // console.log("width = ",$(id).width());
+  //
+  // console.log("top = ",top);
+  console.log("left = ",left);
+
+  console.log(dot)
+
+  for(i = 0; i < dot.size(); i++){
+    if((dot[0][i].cy.baseVal.value+TRANSLATE_Y > top) && (dot[0][i].cy.baseVal.value+TRANSLATE_Y < top+80)){
+      if((dot[0][i].cx.baseVal.value+TRANSLATE_X > left) && (dot[0][i].cx.baseVal.value+TRANSLATE_X < left+80)){
+
+        console.log("base x,y ",dot[0][i].cx.baseVal.value, dot[0][i].cy.baseVal.value)
+        console.log("with translate ",dot[0][i].cx.baseVal.value+TRANSLATE_X, dot[0][i].cy.baseVal.value+TRANSLATE_Y);
+
+        var samp = bufferLoader.bufferList[dot[0][i].id];
+        playSound(samp,audioContext.currentTime);
+        playSound(samp,audioContext.currentTime);
+      }    // hack.. this defined in css
+    }
+  }
+}
+
+
+function hackButton(){
+  loadTracks(trackList);
+  circleUpdate();
+}
 //
 // ======== THESE HANDLE THE DRAGGING OF CIRCLES ========================================
 //
@@ -237,7 +387,19 @@ function dottype(d) {
   return d;
 }
 
+TRANSLATE_Y = 0;
+TRANSLATE_X = 0;
+
 function zoomed() {
+  // console.log("x = ",d3.event.translate[0])
+  TRANSLATE_Y = d3.event.translate[0];
+  TRANSLATE_X = d3.event.translate[1];
+  if(d3.event.scale > 1.5){
+    SCALE_FLAG = 1;
+  }else{
+    SCALE_FLAG = 0;
+  }
+
   container.attr("transform", "translate(" + d3.event.translate + ")scale(" + d3.event.scale + ")");
 }
 
@@ -247,10 +409,11 @@ function dragstarted(d) {
 }
 
 function dragged(d) {
-  // console.log(d3.event.dx, d3.select(this).attr("cx"))
   d3.select(this)
       .attr("cx", d.x = parseInt(d3.select(this).attr("cx")) + parseInt(d3.event.dx))
       .attr("cy", d.y = parseInt(d3.select(this).attr("cy")) + parseInt(d3.event.dy));
+
+  console.log("drag x y ", this.cx.baseVal.value, this.cy.baseVal.value)
 }
 
 function dragended(d) {

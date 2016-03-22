@@ -2,27 +2,36 @@
 <!DOCTYPE html>
 <meta charset="utf-8">
 
-
 <head>
   <link rel="stylesheet" type="text/css" href="css/style.css">
-  <script src="//d3js.org/d3.v3.min.js"></script>
-  <script type="text/javascript" src="d3/d3.min.js"></script>
+  <!-- <script src="//d3js.org/d3.v3.min.js"></script> -->
+  <script type="text/javascript" src="d3/d3.js"></script>
   <script type="text/javascript" src="lib/jquery-1.7.2.min.js" charset="utf-8"></script>
   <script type="text/javascript" src="lib/jquery-ui-1.8.19.custom.min.js" charset="utf-8"></script>
   <script type="text/javascript" src="js/buffer-loader.js"></script>
+  <script type="text/javascript" src="js/freesound.js"></script>
+  <script type="text/javascript" src="js/math.js"></script>
+
 </head>
 
-<!-- <body onload="init();"> -->
 <body>
-<div class="search-container">
+  <button onclick="hackButton()">Click me</button>
+
+  <div class="search-container">
     <span class="icon"><i class="fa fa-search"></i></span>
     <input type="search" id="search" placeholder="Search..." />
-
-</div>
-
+    <!-- <br><br><br> -->
+      <!-- <div class="audition-container">
+        <div class="audition" id="one">
+        </div>
+        <div class="audition" id="two">
+        </div>
+        <div class="audition" id="three">
+        </div>
+        <div class="audition" id="four">
+        </div>
+      </div> <!-- end audition container -->
+  </div> <!-- end search container -->
 </body>
 <script type="text/javascript" src="js/main.js"></script>
-<script>
-
-window.onload = init();
-</script>
+</html>
