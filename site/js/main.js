@@ -71,18 +71,30 @@ window.onload = function(){
 		} );
 	}
 	request.send();
+};
 
+
+$("#search").keydown(function(event){
+    if(event.keyCode == 13){
+      startTextSearch(document.getElementById("search").value);
+    }
+});
+
+function startTextSearch(query){
+
+  console.log("startTextSearch ",query)
   token = "6111dd7939cc531db688360f2d70e96661531292";
   freesound.setToken(token);
 
   var fields = 'id,name,url';
-  var query = "kick"
+  var duration = 0.5;
   var page = 1
   var page_size = 5;
   var filter = "percussion"
   var sort = "score"
+  var group = 1;
 
-  freesound.textSearch(query, {page:page, page_size: page_size, filter:filter, sort:sort, fields:fields},
+  freesound.textSearch(query, {duration:duration, page:page, group_by_pack: group, page_size: page_size, filter:filter, sort:sort, fields:fields},
       function(sounds){                                         // for each sound returned from search
         var msg = ""
         // globalSounds = sounds;  //DEBUG
@@ -108,9 +120,7 @@ window.onload = function(){
           }
         }
       });
-  // waitRoutine();
-};
-
+}
 
 //
 // ======== I LOAD THE AUDIO FOR EVERY TRACK IN THE JSON FILE ============================
@@ -164,7 +174,7 @@ function circleUpdate(){
       console.log("yy ", returnedAnalysis[i].lowlevel.spectral_energy.dmean/math.max(energies)*100);
       y = Math.floor(returnedAnalysis[i].lowlevel.spectral_energy.dmean/math.max(energies)*100);
 
-       return 500;
+       return y;
      })
      .call(drag)
      .style("fill", function(d,i) {
@@ -238,15 +248,21 @@ function circleUpdate(){
           x = (clientWidth/2 -clientWidth/16)+ Math.floor(Math.random()*xRandOffset);
           return x;
         })
+        .on("mouseout", function(d){
+          div.transition()
+              .duration(200)
+              .style("opacity", 0)
+        })
         .on("mouseover", function(d) {
           if(SCALE_FLAG == 1){
+            // console.log(returnedSounds[this.id])
             div.transition()
                 .duration(200)
                 .style("opacity", .9);
-            div .html("duncan" + "<br/>"  + d.close)
+            div .html(returnedSounds[this.id].name + "<br/>"  + d.close)
                 .style("left", (d3.event.pageX) + "px")
                 .style("top", (d3.event.pageY - 28) + "px");
-          }
+            }
         })
         .attr("cy", function(d,i) {
          //  var clientHeight = document.getElementById('svgDiv').offsetHeight;
@@ -293,7 +309,7 @@ function circleUpdate(){
         .on("click", function(d){
           var samp = bufferLoader.bufferList[this.id];
           // console.log(samp)
-          // playSound(samp,audioContext.currentTime);
+          playSound(samp,audioContext.currentTime);
 
         });
       }
@@ -413,7 +429,7 @@ function dragged(d) {
       .attr("cx", d.x = parseInt(d3.select(this).attr("cx")) + parseInt(d3.event.dx))
       .attr("cy", d.y = parseInt(d3.select(this).attr("cy")) + parseInt(d3.event.dy));
 
-  console.log("drag x y ", this.cx.baseVal.value, this.cy.baseVal.value)
+  // console.log("drag x y ", this.cx.baseVal.value, this.cy.baseVal.value)
 }
 
 function dragended(d) {
