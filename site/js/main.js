@@ -1,16 +1,19 @@
 
 var	audioContext = new AudioContext();
+var gainNode = audioContext.createGain();
+
 var thedata     = [];
 var theclasses  = [];
-// var trackUrls  = [];
+var trackUrls;
+var trackUrls2;
 var xRandOffset = 200;
 var margin = {top: -5, right: -5, bottom: -5, left: -5},
     width = window.innerWidth - margin.left - margin.right,
     height = window.innerHeight- margin.top - margin.bottom;
 
-var zoom = d3.behavior.zoom()
-    .scaleExtent([1, 10])
-    .on("zoom", zoomed);
+  var zoom = d3.behavior.zoom()
+      .scaleExtent([1, 10])
+      .on("zoom", zoomed);
 
 var drag = d3.behavior.drag()
     .origin(function(d) { return d; })
@@ -39,11 +42,13 @@ var div = d3.select("body").append("div")
 
 var dot;
 
-var container = svg.append("g")
-var	audioContext = new AudioContext();
+var container = svg.append("g");
+var container2 = svg.append("g");
+
 var thedata     = [];
 var theclasses  = [];
 var trackUrls  = [];
+var trackUrls2  = [];
 var xRandOffset = 200;
 var SCALE_FLAG = 0;
 var NUM_TAGS = 3;
@@ -115,7 +120,6 @@ function startTextSearch(query, searchTags){
   freesound.textSearch(query, {duration:duration, loop:loop, page:page, group_by_pack:group, page_size:page_size, filter:filter, sort:sort, fields:fields},
       function(sounds){                                         // for each sound returned from search
         var msg = "";
-        console.log("searc")
         // globalSounds = sounds;  //DEBUG
         returnedSounds = sounds.results;
         circleInit(returnedSounds);
@@ -144,15 +148,26 @@ function startTextSearch(query, searchTags){
 // ======== I LOAD THE AUDIO FOR EVERY TRACK IN THE JSON FILE ============================
 //
 
-function loadTracks(data) {
-    console.log("loading tracks")
-    // console.log(data)
-    var trackUrls = [];
-    for (var i = 0; i < data.length; i++) {
-       trackUrls.push(data[i]);
-    };
-    bufferLoader = new BufferLoader(audioContext, trackUrls, bufferLoadCompleted);
-    bufferLoader.load(false);
+function loadTracks(data, overwrite_flag) {
+    console.log("data", data)
+    if(overwrite_flag == 1){
+      console.log("loading tracks - overwrite");
+      trackUrls = [];
+      for (var i = 0; i < data.length; i++) {
+         trackUrls.push(data[i]);
+      };
+      bufferLoader = new BufferLoader(audioContext, trackUrls, bufferLoadCompleted);
+      bufferLoader.load(false);
+    }else{
+      console.log("loading tracks - add");
+      for (var i = 0; i < NUM_SIMILAR; i++) {
+        console.log(data[i])
+        console.log(globalSounds[i].id)
+        trackUrls2.push(data[i]);
+      };
+      bufferLoader2 = new BufferLoader(audioContext, data, bufferLoadCompleted);
+      bufferLoader2.load(false);
+    }
  }
 
 //
@@ -162,169 +177,7 @@ function loadTracks(data) {
 function bufferLoadCompleted() {
   // console.log("bufferLoadCompleted");
 }
-//
-// ======== I AM CALLED POST JSON, TO CREATE NDOES FOR EACH ELEM in DATA ==================
-//
 
-function circleUpdate(){
- dot = container.selectAll("circle")
-     .attr("id", function(d,i) {
-       return i;
-     })
-     .attr("cx", function(d,i) {
-       if (typeof(returnedAnalysis[i] != "undefined")){
-        x = 200+Math.floor(returnedAnalysis[i].lowlevel.spectral_spread.dmean/math.max(spreads)*600);
-         return x;
-       }else{
-         return 500;
-       }
-     })
-     .attr("cy", function(d,i) {
-      y = Math.floor(returnedAnalysis[i].lowlevel.spectral_energy.dmean/math.max(energies)*100);
-      if(y < 200){
-        y = y + 200;
-      }
-       return y;
-     })
-     .call(drag)
-     .style("fill", function(d,i) {
-       // console.log(typeof(theclasses[i]),theclasses[i]);
-       switch (theclasses[i]) {
-         case 1:
-           thecolour = "lightcoral";
-           return thecolour;
-         case 2:
-           thecolour = "orange";
-           return thecolour;
-         case 3:
-           thecolour = "red";
-           return thecolour;
-         case 4:
-           thecolour = "blue";
-           return thecolour;
-           break;
-         default:
-           thecolour = "black";
-           return thecolour;
-       }
-     })
-     .attr("r", function(d,i){
-         var str1;
-         var radius;
-        if(returnedSounds){
-          r = -2*Math.log(returnedAnalysis[i].lowlevel.average_loudness);
-        }else{
-          r = 10;
-        }
-        return r;
-     })
-     .on("click", function(d,i){
-        // console.log(Math.floor(returnedAnalysis[i].lowlevel.spectral_centroid.dmean))
-       var samp = bufferLoader.bufferList[this.id];
-       // console.log(samp)
-       playSound(samp,audioContext.currentTime);
-
-       returnedSounds[i].getComments(function(comments){
-         console.log(comments)
-
-       });
-
-     });
-   }
-
-
-   function circleInit(data){
-     // console.log("circle init data = ",data)
-     // console.log(data)
-    dot = container.append("g")
-        .attr("class", "dot")
-      .selectAll("circle")
-        .data(data)
-      .enter().append("circle")
-        .attr("id", function(d,i) {
-         //  console.log("-- ",d," - ",i);
-          return i;
-        })
-        .on("mouseout", function(d){
-          div.transition()
-              .duration(200)
-              .style("opacity", 0)
-        })
-        .on("mouseover", function(d) {
-          if(SCALE_FLAG == 1){
-            var img = "<img id=\x22zoom_img\x22 src='" + globalSounds[this.id].images.spectral_l + "'>";
-            var t = [];
-            tags = globalSounds[this.id].tags
-
-            for(i = 0; i < tags.length; i++){
-              if(i >= NUM_TAGS){
-                break;
-              }
-              t.push(" "+tags[i]+" ");
-            }
-
-            div.transition()
-                .duration(200)
-                .style("opacity", .9);
-            div .html(returnedSounds[this.id].name + "<br/>" + img + "<br/>" +  t.join(''))
-                .style("left", (d3.event.pageX) + "px")
-                .style("top", (d3.event.pageY - 28) + "px");
-            }
-        })
-        .attr("cx", function(d,i) {
-         //  var clientWidth = document.getElementById('svgDiv').offsetWidth;
-          var clientWidth = window.innerWidth;
-          x = (clientWidth/2 -clientWidth/16)+ Math.floor(Math.random()*xRandOffset);
-          return x;
-        })
-        .attr("cy", function(d,i) {
-         //  var clientHeight = document.getElementById('svgDiv').offsetHeight;
-          var clientHeight = window.innerHeight;
-          clientHeight = clientHeight - 200;
-          y = clientHeight/2 + Math.floor(Math.random()*xRandOffset);
-          return y;
-        })
-        .call(drag)
-        .style("fill", function(d,i) {
-          // console.log(typeof(theclasses[i]),theclasses[i]);
-          switch (theclasses[i]) {
-            case 1:
-              thecolour = "lightcoral";
-              return thecolour;
-            case 2:
-              thecolour = "orange";
-              return thecolour;
-            case 3:
-              thecolour = "red";
-              return thecolour;
-            case 4:
-              thecolour = "blue";
-              return thecolour;
-              break;
-            default:
-              thecolour = "black";
-              return thecolour;
-          }
-        })
-        .attr("r", function(d){
-            var str1;
-            var radius;
-           if(returnedSounds){
-             r = 15;
-           }else{
-             r = 20;
-           }
-           // d.getAnalysis();
-           return r;
-
-        })
-        .on("click", function(d){
-          var samp = bufferLoader.bufferList[this.id];
-          // console.log(samp)
-          playSound(samp,audioContext.currentTime);
-
-        });
-      }
 
  //
  // ======== I PLAY SOUNDS - I AM WEB AUDIO ========================================
@@ -335,10 +188,13 @@ function playSound(buffer, time) {
     // console.log("sampletime")
     var source = audioContext.createBufferSource();
     source.buffer = buffer;
-    source.connect(audioContext.destination);
-   source.start(time);
+    source.connect(gainNode);
+    gainNode.connect(audioContext.destination);
+    source.start(time);
 }
-
+function stopSound(buffer, time) {
+  buffer.stop();
+}
 
 // separate function to set these
 var keyCodeOne = 97;
@@ -350,8 +206,6 @@ var keyCodeFour = 102;
 // handles the key detection for triggering samples from keyboard
 document.onkeypress = function (e) {
     e = e || window.event;
-    // console.log(e.keyCode)
-
     switch (e.keyCode) {
       case keyCodeOne:
         triggerSamples("#one");
@@ -375,16 +229,6 @@ function triggerSamples(id){
   var top = offsets.top - 45;
   var left = offsets.left;
   var bottom = offsets;
-
-  console.log("id ",id)
-  // console.log("bottom = ",bottom);
-  // console.log("width = ",$(id).width());
-  //
-  // console.log("top = ",top);
-  console.log("left = ",left);
-
-  console.log(dot)
-
   for(i = 0; i < dot.size(); i++){
     if((dot[0][i].cy.baseVal.value+TRANSLATE_Y > top) && (dot[0][i].cy.baseVal.value+TRANSLATE_Y < top+80)){
       if((dot[0][i].cx.baseVal.value+TRANSLATE_X > left) && (dot[0][i].cx.baseVal.value+TRANSLATE_X < left+80)){
@@ -394,32 +238,69 @@ function triggerSamples(id){
 
         var samp = bufferLoader.bufferList[dot[0][i].id];
         playSound(samp,audioContext.currentTime);
-        playSound(samp,audioContext.currentTime);
       }    // hack.. this defined in css
     }
   }
 }
 
 
+function hackButton1(){
+  for(i=0; i < bufferLoader.bufferList.length; i++){
+    samp = bufferLoader.bufferList[dot[0][i].id];
+    stopSound(samp);
+  }
+}
+
 function hackButton(){
-  loadTracks(trackList);
+  loadTracks(trackList,1);
   circleUpdate();
 }
 //
 // ======== THESE HANDLE THE DRAGGING OF CIRCLES ========================================
 //
-
-function dottype(d) {
-  d.x = +d.x;
-  d.y = +d.y;
-  return d;
-}
+//
+// function dottype(d) {
+//   d.x = +d.x;
+//   d.y = +d.y;
+//   return d;
+// }
 
 TRANSLATE_Y = 0;
 TRANSLATE_X = 0;
+ZOOM_FLAG = 0;
+
+function updateCoords(){
+
+    // The magic function - converts node positions into positions on screen.
+    function getScreenCoords(x, y, r, translate, scale) {
+        // if(typeof(translate) != "undefined"){
+          var xn = translate[0] + x*scale;
+          var yn = translate[1] + y*scale;
+          var rn = r*scale;
+        // }else{
+        //   var xn = x;
+        //   var yn = y;
+        //   var rn = r;
+        // }
+
+        return { x: xn, y: yn, r: rn};
+    }
+
+    dot[0].forEach(function(entry) {
+      // console.log(entry)
+
+      cx = entry.cx.baseVal.value;
+      cy = entry.cy.baseVal.value;
+      cr = entry.r.baseVal.value;
+      coords = getScreenCoords(cx, cy, cr, d3.event.translate, d3.event.scale);
+      entry.currx = coords.x;
+      entry.curry = coords.y;
+      entry.currr = coords.r;
+    });
+}
 
 function zoomed() {
-  // console.log("x = ",d3.event.translate[0])
+  ZOOM_FLAG = 1;
   TRANSLATE_Y = d3.event.translate[0];
   TRANSLATE_X = d3.event.translate[1];
   if(d3.event.scale > 1.5){
@@ -427,11 +308,16 @@ function zoomed() {
   }else{
     SCALE_FLAG = 0;
   }
+  container2.selectAll("circle").remove();    // remove old search nodes
+
+
+  updateCoords();
 
   container.attr("transform", "translate(" + d3.event.translate + ")scale(" + d3.event.scale + ")");
 }
 
 function dragstarted(d) {
+  // crr_x = d.x;l
   d3.event.sourceEvent.stopPropagation();
   d3.select(this).classed("dragging", true);
 }
@@ -440,8 +326,12 @@ function dragged(d) {
   d3.select(this)
       .attr("cx", d.x = parseInt(d3.select(this).attr("cx")) + parseInt(d3.event.dx))
       .attr("cy", d.y = parseInt(d3.select(this).attr("cy")) + parseInt(d3.event.dy));
-
   // console.log("drag x y ", this.cx.baseVal.value, this.cy.baseVal.value)
+
+  console.log(this)
+  // this.currx = d3.event.dx;
+  // this.curry = d3.event.dy;
+
 }
 
 function dragended(d) {
