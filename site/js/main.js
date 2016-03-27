@@ -1,16 +1,35 @@
 
 var	audioContext = new AudioContext();
+var gainNode = audioContext.createGain();
+
+var dot;
+var container = svg.append("g");
+var container2 = svg.append("g");
 var thedata     = [];
 var theclasses  = [];
 var trackUrls  = [];
-var xRandOffset = 200;
+var trackUrls2  = [];
+var trackList = [];
+var returnedSounds = [];
+var returnedAnalysis = [];
+var spreads = [];
+var energies = [];
+var globalSounds = [];
+
+var SCALE_FLAG = 0;
+var NUM_TAGS = 3;
+TRANSLATE_Y = 0;
+TRANSLATE_X = 0;
+ZOOM_FLAG = 0;
+
+
 var margin = {top: -5, right: -5, bottom: -5, left: -5},
     width = window.innerWidth - margin.left - margin.right,
     height = window.innerHeight- margin.top - margin.bottom;
 
-var zoom = d3.behavior.zoom()
-    .scaleExtent([1, 10])
-    .on("zoom", zoomed);
+  var zoom = d3.behavior.zoom()
+      .scaleExtent([1, 10])
+      .on("zoom", zoomed);
 
 var drag = d3.behavior.drag()
     .origin(function(d) { return d; })
@@ -37,22 +56,6 @@ var div = d3.select("body").append("div")
     .attr("class", "tooltip")
     .style("opacity", 0);
 
-var container = svg.append("g")
-var	audioContext = new AudioContext();
-var thedata     = [];
-var theclasses  = [];
-var trackUrls  = [];
-var xRandOffset = 200;
-var SCALE_FLAG = 0;
-var trackUrls = [];
-
-var trackList = [];
-var returnedSounds = [];
-var returnedAnalysis = [];
-var spreads = [];
-var energies = [];
-var globalSounds = [];
-
 // -----------------------------------------------------------------------------
 
 window.onload = function(){
@@ -71,19 +74,31 @@ window.onload = function(){
 		} );
 	}
 	request.send();
-    startTextSearch('percussion');
+    //startTextSearch('percussion');
 };
-
 
 $("#search").keydown(function(event){
     if(event.keyCode == 13){
-      startTextSearch(document.getElementById("search").value);
+      var terms = document.getElementById("search").value.split(/[ ,]+/);
+      var query = terms[0];
+      var searchTags = [];
+      for(i=0; i< terms.length; i++){
+        if(i == 0){
+          query = terms[i];
+        }else {
+          searchTags.push(terms[i]);
+        }
+      }
+      startTextSearch(query, searchTags);
     }
 });
 
-function startTextSearch(query){
+// ==============================================================================
+// This function handles text search
+function startTextSearch(query, searchTags){
 
-  //console.log("startTextSearch ",query)
+  container.selectAll("circle").remove();    // remove old search nodes
+  console.log("startTextSearch ",query, "tags ", searchTags)
   // Duncan's key
   //token = "6111dd7939cc531db688360f2d70e96661531292";
   // Colin's key
@@ -91,18 +106,22 @@ function startTextSearch(query){
   freesound.setToken(token);
 
   var fields = 'id,name,url';
-  var duration = 0.5;
+  var duration = 0.01
+  var loop = 0;
   var page = 1
-  var page_size = 10;
-  var filter = "percussion"
+  var page_size = 5;
+  // var filter = "percussion"
+  // var filter = "duration:[0 TO 3], tag:" + snd.id + ": " + snd.url + "</li>"
+
+
+  var filter = "duration:[0 TO 3], tag:synth"
   var sort = "score"
   var group = 1;
 
-  freesound.textSearch(query, {duration:duration, page:page, group_by_pack: group, page_size: page_size, filter:filter, sort:sort, fields:fields},
+  freesound.textSearch(query, {duration:duration, loop:loop, page:page, group_by_pack:group, page_size:page_size, filter:filter, sort:sort, fields:fields},
       function(sounds){                                         // for each sound returned from search
-        var msg = ""
+        var msg = "";
         // globalSounds = sounds;  //DEBUG
-        //console.log(sounds)
         returnedSounds = sounds.results;
         circleInit(returnedSounds);
 
@@ -118,7 +137,7 @@ function startTextSearch(query){
                     returnedAnalysis.push(analysis);
                     spreads.push(analysis.lowlevel.spectral_spread.dmean);
                     energies.push(analysis.lowlevel.spectral_energy.dmean);
-                    //console.log("analysis ",analysis);
+                    console.log("analysis ",analysis);
                   });
               });
           }
@@ -126,199 +145,88 @@ function startTextSearch(query){
       });
 }
 
-//
-// ======== I LOAD THE AUDIO FOR EVERY TRACK IN THE JSON FILE ============================
-//
-
-function loadTracks(data) {
-    console.log("loading tracks")
-    // console.log(data)
-    for (var i = 0; i < data.length; i++) {
-       trackUrls.push(data[i]);
-    };
-    bufferLoader = new BufferLoader(audioContext, trackUrls, bufferLoadCompleted);
-    bufferLoader.load(false);
-
-    // return loaderDefered.promise;
+// ==============================================================================
+// Add audio to bufferlist
+function loadTracks(data, overwrite_flag) {
+    // console.log("data", data)
+    if(overwrite_flag == 1){
+      // console.log("loading tracks - overwrite");
+      trackUrls = [];
+      for (var i = 0; i < data.length; i++) {
+         trackUrls.push(data[i]);
+      };
+      bufferLoader = new BufferLoader(audioContext, trackUrls, bufferLoadCompleted);
+      bufferLoader.load(false);
+    }else{
+      // console.log("loading tracks - add");
+      for (var i = 0; i < NUM_SIMILAR; i++) {
+        console.log(data[i])
+        console.log(globalSounds[i].id)
+        trackUrls2.push(data[i]);
+      };
+      bufferLoader2 = new BufferLoader(audioContext, data, bufferLoadCompleted);
+      bufferLoader2.load(false);
+    }
  }
 
-//
-// ======== I RUN AFTER ALL THE BUFFERS ARE LOADED ========================================
-//
-
+// ==============================================================================
+// After tracks are loaded
 function bufferLoadCompleted() {
   // console.log("bufferLoadCompleted");
 }
 
-//
-// ======== I AM CALLED POST JSON, TO CREATE NDOES FOR EACH ELEM in DATA ==================
-//
-
-function circleUpdate(){
-  // console.log("circle init data = ",data)
-  // console.log(data)
- dot = container.selectAll("circle")
-     .attr("cx", function(d,i) {
-       if (typeof(returnedAnalysis[i] != "undefined")){
-        //  console.log(returnedAnalysis[i])
-        console.log("xx ",Math.floor(returnedAnalysis[i].lowlevel.spectral_spread.dmean/math.max(spreads)*500));
-        x = Math.floor(returnedAnalysis[i].lowlevel.spectral_spread.dmean/math.max(spreads)*500);
-         return x;
-       }else{
-         return 500;
-       }
-
-     })
-     .attr("cy", function(d,i) {
-      // console.log(returnedAnalysis[i].lowlevel.spectral_rms.dmean, )
-      console.log("yy ", returnedAnalysis[i].lowlevel.spectral_energy.dmean/math.max(energies)*100);
-      y = Math.floor(returnedAnalysis[i].lowlevel.spectral_energy.dmean/math.max(energies)*100);
-
-       return y;
-     })
-     .call(drag)
-     .attr("r", function(d,i){
-         var str1;
-         var radius;
-        if(returnedSounds){
-          // console.log(this.id)
-          // console.log("r ",-2*Math.log(returnedAnalysis[i].lowlevel.average_loudness));
-          // console.log(returnedAnalysis[this.id])
-          r = -2*Math.log(returnedAnalysis[i].lowlevel.average_loudness);
-
-        }else{
-          r = 10;
-        }
-        // d.getAnalysis();
-        return r;
-
-     })
-     .on("click", function(d,i){
-
-        // console.log(Math.floor(returnedAnalysis[i].lowlevel.spectral_centroid.dmean))
-       var samp = bufferLoader.bufferList[i];
-       // console.log(samp)
-       playSound(samp,audioContext.currentTime);
-
-       returnedSounds[i].getComments(function(comments){
-         console.log(comments)
-
-       });
-
-     });
-   }
-
-
-   function circleInit(data){
-     // console.log("circle init data = ",data)
-     // console.log(data)
-    dot = container.append("g")
-        .attr("class", "dot")
-      .selectAll("circle")
-        .data(data)
-      .enter().append("circle")
-        .attr("id", function(d,i) {
-         //  console.log("-- ",d," - ",i);
-          return d.id;
-        })
-        .attr("cx", function(d,i) {
-         //  var clientWidth = document.getElementById('svgDiv').offsetWidth;
-          var clientWidth = window.innerWidth;
-          x = (clientWidth/2 -clientWidth/16)+ Math.floor(Math.random()*xRandOffset);
-          return x;
-        })
-        .on("mouseout", function(d){
-          div.transition()
-              .duration(200)
-              .style("opacity", 0)
-        })
-        .on("mouseover", function(d) {
-          if(SCALE_FLAG == 1){
-            // console.log(returnedSounds[this.id])
-            div.transition()
-                .duration(200)
-                .style("opacity", .9);
-            div .html(returnedSounds[this.id].name + "<br/>"  + d.close)
-                .style("left", (d3.event.pageX) + "px")
-                .style("top", (d3.event.pageY - 28) + "px");
-            }
-        })
-        .attr("cy", function(d,i) {
-         //  var clientHeight = document.getElementById('svgDiv').offsetHeight;
-          var clientHeight = window.innerHeight;
-          clientHeight = clientHeight - 200;
-          y = clientHeight/2 + Math.floor(Math.random()*xRandOffset);
-          return y;
-        })
-        .call(drag)
-        .style("fill", function(d,i) {
-          // console.log(typeof(theclasses[i]),theclasses[i]);
-          switch (theclasses[i]) {
-            case 1:
-              thecolour = "lightcoral";
-              return thecolour;
-            case 2:
-              thecolour = "orange";
-              return thecolour;
-            case 3:
-              thecolour = "red";
-              return thecolour;
-            case 4:
-              thecolour = "blue";
-              return thecolour;
-              break;
-            default:
-              thecolour = "black";
-              return thecolour;
-          }
-        })
-        .attr("r", function(d){
-            var str1;
-            var radius;
-           if(returnedSounds){
-             //console.log("radius! ",returnedAnalysis.length)
-             r = 15;
-           }else{
-             r = 20;
-           }
-           // d.getAnalysis();
-           return r;
-
-        })
-        .on("click", function(d, i){
-          var samp = bufferLoader.bufferList[i];
-          // console.log(samp)
-          playSound(samp,audioContext.currentTime);
-
-        });
-      }
-
- //
- // ======== I PLAY SOUNDS - I AM WEB AUDIO ========================================
- //
-
+// ==============================================================================
+// Play audio -- Web audio
 function playSound(buffer, time) {
 
     // console.log("sampletime")
     var source = audioContext.createBufferSource();
     source.buffer = buffer;
     source.connect(audioContext.destination);
-   source.start(time);
+    // gainNode.connect(audioContext.destination);
+    source.start(time);
+
 }
 
+// ==============================================================================
+// Stop audio -- Web audio
+function stopSound(buffer, time) {
+    audioContext.close();
+    audioContext = new AudioContext();
+}
 
-// separate function to set these
-var keyCodeOne = 97;
-var keyCodeTwo = 115;
-var keyCodeThree = 100;
-var keyCodeFour = 102;
+// // separate function to set these
+// var keyCodeOne = 97;
+// var keyCodeTwo = 115;
+// var keyCodeThree = 100;
+// var keyCodeFour = 102;
+//
+// // ==============================================================================
+// // triggers samples in regions
+// function triggerSamples(id){
+//   var offsets = $(id).offset();
+//   var top = offsets.top - 45;
+//   var left = offsets.left;
+//   var bottom = offsets;
+//   for(i = 0; i < dot.size(); i++){
+//     if((dot[0][i].cy.baseVal.value+TRANSLATE_Y > top) && (dot[0][i].cy.baseVal.value+TRANSLATE_Y < top+80)){
+//       if((dot[0][i].cx.baseVal.value+TRANSLATE_X > left) && (dot[0][i].cx.baseVal.value+TRANSLATE_X < left+80)){
+//
+//         console.log("base x,y ",dot[0][i].cx.baseVal.value, dot[0][i].cy.baseVal.value)
+//         console.log("with translate ",dot[0][i].cx.baseVal.value+TRANSLATE_X, dot[0][i].cy.baseVal.value+TRANSLATE_Y);
+//
+//         var samp = bufferLoader.bufferList[dot[0][i].id];
+//         playSound(samp,audioContext.currentTime);
+//       }    // hack.. this defined in css
+//     }
+//   }
+// }
 
 
+// ==============================================================================
 // handles the key detection for triggering samples from keyboard
 document.onkeypress = function (e) {
     e = e || window.event;
-    // console.log(e.keyCode)
-
     switch (e.keyCode) {
       case keyCodeOne:
         triggerSamples("#one");
@@ -336,57 +244,66 @@ document.onkeypress = function (e) {
     }
 };
 
-// triggers samples in regions
-function triggerSamples(id){
-  var offsets = $(id).offset();
-  var top = offsets.top - 45;
-  var left = offsets.left;
-  var bottom = offsets;
 
-  //console.log("id ",id)
-  // console.log("bottom = ",bottom);
-  // console.log("width = ",$(id).width());
-  //
-  // console.log("top = ",top);
-  //console.log("left = ",left);
-
-  //console.log(dot)
-
-  for(i = 0; i < dot.size(); i++){
-    if((dot[0][i].cy.baseVal.value+TRANSLATE_Y > top) && (dot[0][i].cy.baseVal.value+TRANSLATE_Y < top+80)){
-      if((dot[0][i].cx.baseVal.value+TRANSLATE_X > left) && (dot[0][i].cx.baseVal.value+TRANSLATE_X < left+80)){
-
-        //console.log("base x,y ",dot[0][i].cx.baseVal.value, dot[0][i].cy.baseVal.value)
-        //console.log("with translate ",dot[0][i].cx.baseVal.value+TRANSLATE_X, dot[0][i].cy.baseVal.value+TRANSLATE_Y);
-
-        var samp = bufferLoader.bufferList[dot[0][i].id];
-        playSound(samp,audioContext.currentTime);
-        playSound(samp,audioContext.currentTime);
-      }    // hack.. this defined in css
+// ==============================================================================
+// following 3 are hack buttons for functionality
+function hackButton2(){
+    if(SIMILAR_FLAG == 1){
+      SIMILAR_FLAG = 0;
+    }else if (SIMILAR_FLAG == 0){
+      SIMILAR_FLAG = 1;
     }
+}
+
+function hackButton1(){
+  for(i=0; i < bufferLoader.bufferList.length; i++){
+    samp = bufferLoader.bufferList[dot[0][i].id];
+    stopSound(samp);
   }
 }
 
-
 function hackButton(){
-  loadTracks(trackList);
+  loadTracks(trackList,1);
   circleUpdate();
 }
-//
-// ======== THESE HANDLE THE DRAGGING OF CIRCLES ========================================
-//
 
-function dottype(d) {
-  d.x = +d.x;
-  d.y = +d.y;
-  return d;
+// ==============================================================================
+// update coordiantes after zoom or drag
+function updateCoords(){
+
+    // The magic function - converts node positions into positions on screen.
+    function getScreenCoords(x, y, r, translate, scale) {
+        // if(typeof(translate) != "undefined"){
+          var xn = translate[0] + x*scale;
+          var yn = translate[1] + y*scale;
+          var rn = r*scale;
+        // }else{
+        //   var xn = x;
+        //   var yn = y;
+        //   var rn = r;
+        // }
+
+        return { x: xn, y: yn, r: rn};
+    }
+
+    dot[0].forEach(function(entry) {
+      // console.log(entry)
+
+      cx = entry.cx.baseVal.value;
+      cy = entry.cy.baseVal.value;
+      cr = entry.r.baseVal.value;
+      coords = getScreenCoords(cx, cy, cr, d3.event.translate, d3.event.scale);
+      entry.currx = coords.x;
+      entry.curry = coords.y;
+      entry.currr = coords.r;
+    });
 }
 
 TRANSLATE_Y = 0;
 TRANSLATE_X = 0;
 
 function zoomed() {
-  // console.log("x = ",d3.event.translate[0])
+  ZOOM_FLAG = 1;
   TRANSLATE_Y = d3.event.translate[0];
   TRANSLATE_X = d3.event.translate[1];
   if(d3.event.scale > 1.5){
@@ -394,11 +311,16 @@ function zoomed() {
   }else{
     SCALE_FLAG = 0;
   }
+  container2.selectAll("circle").remove();    // remove old search nodes
+
+
+  updateCoords();
 
   container.attr("transform", "translate(" + d3.event.translate + ")scale(" + d3.event.scale + ")");
 }
 
 function dragstarted(d) {
+  // crr_x = d.x;l
   d3.event.sourceEvent.stopPropagation();
   d3.select(this).classed("dragging", true);
 }
@@ -407,8 +329,16 @@ function dragged(d) {
   d3.select(this)
       .attr("cx", d.x = parseInt(d3.select(this).attr("cx")) + parseInt(d3.event.dx))
       .attr("cy", d.y = parseInt(d3.select(this).attr("cy")) + parseInt(d3.event.dy));
-
   // console.log("drag x y ", this.cx.baseVal.value, this.cy.baseVal.value)
+
+  console.log(d3.event.dx)
+
+  d3.select(this)[0][0].currx = d3.select(this)[0][0].currx + d3.event.dx;
+  d3.select(this)[0][0].curry = d3.select(this)[0][0].curry + d3.event.dy;
+
+  // this.currx = d3.event.dx;
+  // this.curry = d3.event.dy;
+
 }
 
 function dragended(d) {
