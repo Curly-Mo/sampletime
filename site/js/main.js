@@ -71,6 +71,7 @@ window.onload = function(){
 		} );
 	}
 	request.send();
+    startTextSearch('percussion');
 };
 
 
@@ -82,14 +83,17 @@ $("#search").keydown(function(event){
 
 function startTextSearch(query){
 
-  console.log("startTextSearch ",query)
-  token = "6111dd7939cc531db688360f2d70e96661531292";
+  //console.log("startTextSearch ",query)
+  // Duncan's key
+  //token = "6111dd7939cc531db688360f2d70e96661531292";
+  // Colin's key
+  token = "741cbb4dfc84a58ab97e1321a1ea7628e40ddc5f";
   freesound.setToken(token);
 
   var fields = 'id,name,url';
   var duration = 0.5;
   var page = 1
-  var page_size = 5;
+  var page_size = 10;
   var filter = "percussion"
   var sort = "score"
   var group = 1;
@@ -98,7 +102,7 @@ function startTextSearch(query){
       function(sounds){                                         // for each sound returned from search
         var msg = ""
         // globalSounds = sounds;  //DEBUG
-        console.log(sounds)
+        //console.log(sounds)
         returnedSounds = sounds.results;
         circleInit(returnedSounds);
 
@@ -114,7 +118,7 @@ function startTextSearch(query){
                     returnedAnalysis.push(analysis);
                     spreads.push(analysis.lowlevel.spectral_spread.dmean);
                     energies.push(analysis.lowlevel.spectral_energy.dmean);
-                    console.log("analysis ",analysis);
+                    //console.log("analysis ",analysis);
                   });
               });
           }
@@ -154,10 +158,6 @@ function circleUpdate(){
   // console.log("circle init data = ",data)
   // console.log(data)
  dot = container.selectAll("circle")
-     .attr("id", function(d,i) {
-      //  console.log("-- ",d," - ",i);
-       return i;
-     })
      .attr("cx", function(d,i) {
        if (typeof(returnedAnalysis[i] != "undefined")){
         //  console.log(returnedAnalysis[i])
@@ -177,27 +177,6 @@ function circleUpdate(){
        return y;
      })
      .call(drag)
-     .style("fill", function(d,i) {
-       // console.log(typeof(theclasses[i]),theclasses[i]);
-       switch (theclasses[i]) {
-         case 1:
-           thecolour = "lightcoral";
-           return thecolour;
-         case 2:
-           thecolour = "orange";
-           return thecolour;
-         case 3:
-           thecolour = "red";
-           return thecolour;
-         case 4:
-           thecolour = "blue";
-           return thecolour;
-           break;
-         default:
-           thecolour = "black";
-           return thecolour;
-       }
-     })
      .attr("r", function(d,i){
          var str1;
          var radius;
@@ -217,7 +196,7 @@ function circleUpdate(){
      .on("click", function(d,i){
 
         // console.log(Math.floor(returnedAnalysis[i].lowlevel.spectral_centroid.dmean))
-       var samp = bufferLoader.bufferList[this.id];
+       var samp = bufferLoader.bufferList[i];
        // console.log(samp)
        playSound(samp,audioContext.currentTime);
 
@@ -240,7 +219,7 @@ function circleUpdate(){
       .enter().append("circle")
         .attr("id", function(d,i) {
          //  console.log("-- ",d," - ",i);
-          return i;
+          return d.id;
         })
         .attr("cx", function(d,i) {
          //  var clientWidth = document.getElementById('svgDiv').offsetWidth;
@@ -297,7 +276,7 @@ function circleUpdate(){
             var str1;
             var radius;
            if(returnedSounds){
-             console.log("radius! ",returnedAnalysis.length)
+             //console.log("radius! ",returnedAnalysis.length)
              r = 15;
            }else{
              r = 20;
@@ -306,8 +285,8 @@ function circleUpdate(){
            return r;
 
         })
-        .on("click", function(d){
-          var samp = bufferLoader.bufferList[this.id];
+        .on("click", function(d, i){
+          var samp = bufferLoader.bufferList[i];
           // console.log(samp)
           playSound(samp,audioContext.currentTime);
 
@@ -364,21 +343,21 @@ function triggerSamples(id){
   var left = offsets.left;
   var bottom = offsets;
 
-  console.log("id ",id)
+  //console.log("id ",id)
   // console.log("bottom = ",bottom);
   // console.log("width = ",$(id).width());
   //
   // console.log("top = ",top);
-  console.log("left = ",left);
+  //console.log("left = ",left);
 
-  console.log(dot)
+  //console.log(dot)
 
   for(i = 0; i < dot.size(); i++){
     if((dot[0][i].cy.baseVal.value+TRANSLATE_Y > top) && (dot[0][i].cy.baseVal.value+TRANSLATE_Y < top+80)){
       if((dot[0][i].cx.baseVal.value+TRANSLATE_X > left) && (dot[0][i].cx.baseVal.value+TRANSLATE_X < left+80)){
 
-        console.log("base x,y ",dot[0][i].cx.baseVal.value, dot[0][i].cy.baseVal.value)
-        console.log("with translate ",dot[0][i].cx.baseVal.value+TRANSLATE_X, dot[0][i].cy.baseVal.value+TRANSLATE_Y);
+        //console.log("base x,y ",dot[0][i].cx.baseVal.value, dot[0][i].cy.baseVal.value)
+        //console.log("with translate ",dot[0][i].cx.baseVal.value+TRANSLATE_X, dot[0][i].cy.baseVal.value+TRANSLATE_Y);
 
         var samp = bufferLoader.bufferList[dot[0][i].id];
         playSound(samp,audioContext.currentTime);
