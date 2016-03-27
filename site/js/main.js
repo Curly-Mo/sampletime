@@ -2,11 +2,27 @@
 var	audioContext = new AudioContext();
 var gainNode = audioContext.createGain();
 
+var dot;
+var container = svg.append("g");
+var container2 = svg.append("g");
 var thedata     = [];
 var theclasses  = [];
-var trackUrls;
-var trackUrls2;
-var xRandOffset = 200;
+var trackUrls  = [];
+var trackUrls2  = [];
+var trackList = [];
+var returnedSounds = [];
+var returnedAnalysis = [];
+var spreads = [];
+var energies = [];
+var globalSounds = [];
+
+var SCALE_FLAG = 0;
+var NUM_TAGS = 3;
+TRANSLATE_Y = 0;
+TRANSLATE_X = 0;
+ZOOM_FLAG = 0;
+
+
 var margin = {top: -5, right: -5, bottom: -5, left: -5},
     width = window.innerWidth - margin.left - margin.right,
     height = window.innerHeight- margin.top - margin.bottom;
@@ -39,27 +55,6 @@ var rect = svg.append("rect")
 var div = d3.select("body").append("div")
     .attr("class", "tooltip")
     .style("opacity", 0);
-
-var dot;
-
-var container = svg.append("g");
-var container2 = svg.append("g");
-
-var thedata     = [];
-var theclasses  = [];
-var trackUrls  = [];
-var trackUrls2  = [];
-var xRandOffset = 200;
-var SCALE_FLAG = 0;
-var NUM_TAGS = 3;
-var trackUrls = [];
-
-var trackList = [];
-var returnedSounds = [];
-var returnedAnalysis = [];
-var spreads = [];
-var energies = [];
-var globalSounds = [];
 
 // -----------------------------------------------------------------------------
 
@@ -97,6 +92,8 @@ $("#search").keydown(function(event){
     }
 });
 
+// ==============================================================================
+// This function handles text search
 function startTextSearch(query, searchTags){
 
   container.selectAll("circle").remove();    // remove old search nodes
@@ -144,14 +141,12 @@ function startTextSearch(query, searchTags){
       });
 }
 
-//
-// ======== I LOAD THE AUDIO FOR EVERY TRACK IN THE JSON FILE ============================
-//
-
+// ==============================================================================
+// Add audio to bufferlist
 function loadTracks(data, overwrite_flag) {
-    console.log("data", data)
+    // console.log("data", data)
     if(overwrite_flag == 1){
-      console.log("loading tracks - overwrite");
+      // console.log("loading tracks - overwrite");
       trackUrls = [];
       for (var i = 0; i < data.length; i++) {
          trackUrls.push(data[i]);
@@ -159,7 +154,7 @@ function loadTracks(data, overwrite_flag) {
       bufferLoader = new BufferLoader(audioContext, trackUrls, bufferLoadCompleted);
       bufferLoader.load(false);
     }else{
-      console.log("loading tracks - add");
+      // console.log("loading tracks - add");
       for (var i = 0; i < NUM_SIMILAR; i++) {
         console.log(data[i])
         console.log(globalSounds[i].id)
@@ -170,39 +165,62 @@ function loadTracks(data, overwrite_flag) {
     }
  }
 
-//
-// ======== I RUN AFTER ALL THE BUFFERS ARE LOADED ========================================
-//
-
+// ==============================================================================
+// After tracks are loaded
 function bufferLoadCompleted() {
   // console.log("bufferLoadCompleted");
 }
 
 
- //
- // ======== I PLAY SOUNDS - I AM WEB AUDIO ========================================
- //
-
+// ==============================================================================
+// Play audio -- Web audio
 function playSound(buffer, time) {
 
     // console.log("sampletime")
     var source = audioContext.createBufferSource();
     source.buffer = buffer;
-    source.connect(gainNode);
-    gainNode.connect(audioContext.destination);
+    source.connect(audioContext.destination);
+    // gainNode.connect(audioContext.destination);
     source.start(time);
+
 }
+
+// ==============================================================================
+// Stop audio -- Web audio
 function stopSound(buffer, time) {
-  buffer.stop();
+    audioContext.close();
+    audioContext = new AudioContext();
 }
 
-// separate function to set these
-var keyCodeOne = 97;
-var keyCodeTwo = 115;
-var keyCodeThree = 100;
-var keyCodeFour = 102;
+// // separate function to set these
+// var keyCodeOne = 97;
+// var keyCodeTwo = 115;
+// var keyCodeThree = 100;
+// var keyCodeFour = 102;
+//
+// // ==============================================================================
+// // triggers samples in regions
+// function triggerSamples(id){
+//   var offsets = $(id).offset();
+//   var top = offsets.top - 45;
+//   var left = offsets.left;
+//   var bottom = offsets;
+//   for(i = 0; i < dot.size(); i++){
+//     if((dot[0][i].cy.baseVal.value+TRANSLATE_Y > top) && (dot[0][i].cy.baseVal.value+TRANSLATE_Y < top+80)){
+//       if((dot[0][i].cx.baseVal.value+TRANSLATE_X > left) && (dot[0][i].cx.baseVal.value+TRANSLATE_X < left+80)){
+//
+//         console.log("base x,y ",dot[0][i].cx.baseVal.value, dot[0][i].cy.baseVal.value)
+//         console.log("with translate ",dot[0][i].cx.baseVal.value+TRANSLATE_X, dot[0][i].cy.baseVal.value+TRANSLATE_Y);
+//
+//         var samp = bufferLoader.bufferList[dot[0][i].id];
+//         playSound(samp,audioContext.currentTime);
+//       }    // hack.. this defined in css
+//     }
+//   }
+// }
 
 
+// ==============================================================================
 // handles the key detection for triggering samples from keyboard
 document.onkeypress = function (e) {
     e = e || window.event;
@@ -223,26 +241,16 @@ document.onkeypress = function (e) {
     }
 };
 
-// triggers samples in regions
-function triggerSamples(id){
-  var offsets = $(id).offset();
-  var top = offsets.top - 45;
-  var left = offsets.left;
-  var bottom = offsets;
-  for(i = 0; i < dot.size(); i++){
-    if((dot[0][i].cy.baseVal.value+TRANSLATE_Y > top) && (dot[0][i].cy.baseVal.value+TRANSLATE_Y < top+80)){
-      if((dot[0][i].cx.baseVal.value+TRANSLATE_X > left) && (dot[0][i].cx.baseVal.value+TRANSLATE_X < left+80)){
 
-        console.log("base x,y ",dot[0][i].cx.baseVal.value, dot[0][i].cy.baseVal.value)
-        console.log("with translate ",dot[0][i].cx.baseVal.value+TRANSLATE_X, dot[0][i].cy.baseVal.value+TRANSLATE_Y);
-
-        var samp = bufferLoader.bufferList[dot[0][i].id];
-        playSound(samp,audioContext.currentTime);
-      }    // hack.. this defined in css
+// ==============================================================================
+// following 3 are hack buttons for functionality
+function hackButton2(){
+    if(SIMILAR_FLAG == 1){
+      SIMILAR_FLAG = 0;
+    }else if (SIMILAR_FLAG == 0){
+      SIMILAR_FLAG = 1;
     }
-  }
 }
-
 
 function hackButton1(){
   for(i=0; i < bufferLoader.bufferList.length; i++){
@@ -255,20 +263,9 @@ function hackButton(){
   loadTracks(trackList,1);
   circleUpdate();
 }
-//
-// ======== THESE HANDLE THE DRAGGING OF CIRCLES ========================================
-//
-//
-// function dottype(d) {
-//   d.x = +d.x;
-//   d.y = +d.y;
-//   return d;
-// }
 
-TRANSLATE_Y = 0;
-TRANSLATE_X = 0;
-ZOOM_FLAG = 0;
-
+// ==============================================================================
+// update coordiantes after zoom or drag
 function updateCoords(){
 
     // The magic function - converts node positions into positions on screen.
@@ -328,7 +325,11 @@ function dragged(d) {
       .attr("cy", d.y = parseInt(d3.select(this).attr("cy")) + parseInt(d3.event.dy));
   // console.log("drag x y ", this.cx.baseVal.value, this.cy.baseVal.value)
 
-  console.log(this)
+  console.log(d3.event.dx)
+
+  d3.select(this)[0][0].currx = d3.select(this)[0][0].currx + d3.event.dx;
+  d3.select(this)[0][0].curry = d3.select(this)[0][0].curry + d3.event.dy;
+
   // this.currx = d3.event.dx;
   // this.curry = d3.event.dy;
 

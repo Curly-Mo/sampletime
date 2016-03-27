@@ -5,12 +5,14 @@ var theResults = [];
 var last_ID;
 var curr_ID;
 var trackListSimilar = [];
+var SIMILAR_FLAG = 0;
+
 // ==============================================================================
 // This function inits the circles
-
 function circleInit(data){
-  // console.log("circle init data = ",data)
-  // console.log(data)
+
+  var xRandOffset = 200;
+
     dot = container.append("g")
     .attr("currx",0)
     .attr("curry",0)
@@ -23,11 +25,10 @@ function circleInit(data){
        return i;
      })
      .on("mouseout", function(d){
-        //  container2.selectAll("circle").remove();    // remove old search nodes
-      //  console.log(container2);
-      //  div.transition()
-      //      .duration(200)
-      //      .style("opacity", 0)
+       console.log(container2);
+       div.transition()
+           .duration(200)
+           .style("opacity", 0)
      })
      .on("mouseover", function(d) {
        curr_ID = this.id;
@@ -126,7 +127,6 @@ function circleInit(data){
 
 // ==============================================================================
 // This function updates the circles
-
 function circleUpdate(){
      dot = container.selectAll("circle")
      .attr("id", function(d,i) {
@@ -180,9 +180,10 @@ function circleUpdate(){
         return r;
      })
      .on("click", function(d,i){
-
-       theResults = [];                            // clear the results
-       getSimilarHover(returnedSounds[this.id]);
+       if(SIMILAR_FLAG == 1){
+         theResults = [];                            // clear the results
+         getSimilarHover(returnedSounds[this.id]);
+       }
        var samp = bufferLoader.bufferList[this.id];
        playSound(samp,audioContext.currentTime);
 
@@ -191,38 +192,23 @@ function circleUpdate(){
 
 // ==============================================================================
 // This function returns the similar sounds of a zoomed and hovered returnedSound
-
 function getSimilarHover(theSound){
-  console.log("ever")
+  // console.log("ever")
   theSound.getSimilar(function(similar){
     for(i=1; i <= RESULTS_TO_DISPLAY; i++){
-      console.log("pings")
       theResults.push(similar.results[i]);
-
 
       freesound.getSound(similar.getSound(i).id,
           function(sound){
             trackListSimilar.push(sound.previews['preview-hq-mp3']);
-
-            // sound.getAnalysis(null,function(analysis){
-            //   returnedAnalysis.push(analysis);
-            //   spreads.push(analysis.lowlevel.spectral_spread.dmean);
-            //   energies.push(analysis.lowlevel.spectral_energy.dmean);
-            //   console.log("analysis ",analysis);
-            // });
         });
-
     }
   });
-  console.log("ere",theResults)
   NUM_SIMILAR = theResults.length;
-
-
-
 }
 
-
-
+// ==============================================================================
+// This function inits similar sound circles
 function zoomedCircleInit(data){
    container2.selectAll("circle").remove();    // remove old search nodes
    dot2 = container2.append("g")
