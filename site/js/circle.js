@@ -24,8 +24,12 @@ function circleInit(data){
       //  console.log("-- ",d," - ",i);
        return i;
      })
+     .attr("data-id", function(d,i) {
+      //  console.log("-- ",d," - ",i);
+       return d.id;
+     })
      .on("mouseout", function(d){
-       console.log(container2);
+       //console.log(container2);
        div.transition()
            .duration(200)
            .style("opacity", 0)
@@ -148,27 +152,6 @@ function circleUpdate(){
        return y;
      })
      .call(drag)
-     .style("fill", function(d,i) {
-       // console.log(typeof(theclasses[i]),theclasses[i]);
-       switch (theclasses[i]) {
-         case 1:
-           thecolour = "lightcoral";
-           return thecolour;
-         case 2:
-           thecolour = "orange";
-           return thecolour;
-         case 3:
-           thecolour = "red";
-           return thecolour;
-         case 4:
-           thecolour = "blue";
-           return thecolour;
-           break;
-         default:
-           thecolour = "black";
-           return thecolour;
-       }
-     })
      .attr("r", function(d,i){
          var str1;
          var radius;

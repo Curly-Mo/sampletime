@@ -3,8 +3,6 @@ var	audioContext = new AudioContext();
 var gainNode = audioContext.createGain();
 
 var dot;
-var container = svg.append("g");
-var container2 = svg.append("g");
 var thedata     = [];
 var theclasses  = [];
 var trackUrls  = [];
@@ -51,6 +49,8 @@ var rect = svg.append("rect")
     .style("fill", "none")
     .style("pointer-events", "all")
     .style("z-index", -1);
+var container = svg.append("g");
+var container2 = svg.append("g");
 
 var div = d3.select("body").append("div")
     .attr("class", "tooltip")
@@ -74,7 +74,9 @@ window.onload = function(){
 		} );
 	}
 	request.send();
+    //Load sounds/circles on pageload
     //startTextSearch('percussion');
+    //window.setTimeout(hackButton,2000);
 };
 
 $("#search").keydown(function(event){
@@ -98,18 +100,19 @@ $("#search").keydown(function(event){
 function startTextSearch(query, searchTags){
 
   container.selectAll("circle").remove();    // remove old search nodes
+  container.selectAll("text").remove();    // remove old search nodes
   console.log("startTextSearch ",query, "tags ", searchTags)
   // Duncan's key
-  //token = "6111dd7939cc531db688360f2d70e96661531292";
+  token = "6111dd7939cc531db688360f2d70e96661531292";
   // Colin's key
-  token = "741cbb4dfc84a58ab97e1321a1ea7628e40ddc5f";
+  //token = "741cbb4dfc84a58ab97e1321a1ea7628e40ddc5f";
   freesound.setToken(token);
 
-  var fields = 'id,name,url';
+  var fields = 'id,name,url,tags';
   var duration = 0.01
   var loop = 0;
   var page = 1
-  var page_size = 5;
+  var page_size = 20;
   // var filter = "percussion"
   // var filter = "duration:[0 TO 3], tag:" + snd.id + ": " + snd.url + "</li>"
 
@@ -125,6 +128,7 @@ function startTextSearch(query, searchTags){
         returnedSounds = sounds.results;
         circleInit(returnedSounds);
 
+        returnedAnalysis = [];
         for (i = 0; i <= returnedSounds.length-1; i++){
           // console.log(returnedSounds)
           if (typeof sounds.getSound(i).id != "undefined") {
@@ -137,7 +141,7 @@ function startTextSearch(query, searchTags){
                     returnedAnalysis.push(analysis);
                     spreads.push(analysis.lowlevel.spectral_spread.dmean);
                     energies.push(analysis.lowlevel.spectral_energy.dmean);
-                    console.log("analysis ",analysis);
+                    //console.log("analysis ",analysis);
                   });
               });
           }
@@ -225,7 +229,7 @@ function stopSound(buffer, time) {
 
 // ==============================================================================
 // handles the key detection for triggering samples from keyboard
-document.onkeypress = function (e) {
+/*document.onkeypress = function (e) {
     e = e || window.event;
     switch (e.keyCode) {
       case keyCodeOne:
@@ -242,7 +246,7 @@ document.onkeypress = function (e) {
         break;
       default:
     }
-};
+};*/
 
 
 // ==============================================================================

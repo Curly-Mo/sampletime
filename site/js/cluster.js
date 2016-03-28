@@ -18,30 +18,75 @@ $('#clusterButton').click(function() {
 	var num_clusters = 4;
 	var clusters = clusterfck.kmeans(mfccs, num_clusters);
     var centers = [];
+    var cluster_tags = [];
 	var colors = generate_colors(num_clusters);
     //set colors and cluster centers
-    for(var i=0;i<clusters.length;i++){
+    for(var i=0;i<Object.keys(clusters).length;i++){
         var cluster = clusters[i];
         centers[i] = average.apply(null, cluster);
+        cluster_tags[i] = [];
         for(var j=0;j<cluster.length;j++){
             var id = cluster[j].id;
-            var elem = $('circle').filter('#'+id);
+            var elem = $('circle[data-id=' + id + ']');
             elem.css({ fill: 'rgb('+colors[i]+')'});
+            cluster_tags[i].push.apply(cluster_tags[i], samples[id].sound.tags.map(function(item){return item.toLowerCase()}));
         }
 	}
     var sounds = flatten(clusters);
+    var max_distance = 0;
     //compute distance from each center
     for(var i=0;i<sounds.length;i++){
         sounds[i].distances = [];
         for(var j=0;j<centers.length;j++){
             var d = clusterfck.distance.euclidean(sounds[i], centers[j]);
             sounds[i].distances[j] = d;
+            if (d > max_distance) {
+                max_distance = d;
+            }
         }
 	}
     //position based on center distances
-    for(var i=0;i<sounds.length;i++){
-        console.log(sounds[i]);
+    var positions = [50, window.innerWidth - 50, 50, window.innerHeight - 100]
+    // Position center tags
+    console.log(cluster_tags);
+    cluster_tags = uniqify(cluster_tags);
+    console.log(cluster_tags);
+    container.selectAll('text').remove();
+    for(var i=0;i<centers.length;i++){
+        centers[i].tag = most_common(cluster_tags[i]);
+        if(i<2){
+            var x = positions[i];
+            var y = (positions[2]+positions[3])/2;
+        }else{
+            var x = (positions[0]+positions[1])/2;
+            var y = positions[i];
+        }
+        container.append('text').text(centers[i].tag)
+                .attr('x', x)
+                .attr('y', y)
+                .attr('fill', 'black')
     }
+    //console.log(centers);
+    
+    // Position each sound
+    for(var i=0;i<sounds.length;i++){
+        //normalize distances
+        sounds[i].distances = sounds[i].distances.map(function(element){
+           return element / max_distance;
+        });
+        var d1 = Math.min.apply(null, sounds[i].distances.slice(0,2));
+        var d2 = Math.min.apply(null, sounds[i].distances.slice(2,4));
+        var d1_index = sounds[i].distances.indexOf(d1);
+        var d2_index = sounds[i].distances.indexOf(d2);
+        var x = positions[d1_index] + window.innerWidth*(d1 * Math.pow(-1, d1_index % 2))/1.5;
+        var y = positions[d2_index] + window.innerHeight*(d2 * Math.pow(-1, d2_index % 2))/1.5;
+        var id = sounds[i].id;
+        var elem = $('circle[data-id=' + id + ']');
+        elem.attr('cx', x);
+        elem.attr('cy', y);
+    }
+});
+
 });
 
 /**
@@ -152,5 +197,29 @@ function hsvToRgb(h, s, v) {
     return [Math.round(r * 255), Math.round(g * 255), Math.round(b * 255)];
 }
 
-});
+function most_common(list){
+    var counts = {}, max = 0, result;
+    for (var v in list) {
+        counts[list[v]] = (counts[list[v]] || 0) + 1;
+        if (counts[list[v]] > max) { 
+            max = counts[list[v]];
+            result = list[v];
+        }
+    }
+    return result;
+}
 
+function uniqify(lists){
+    for(var i=0;i<lists.length;i++){
+        for(var k=lists[i].length;k--;){
+            var item = lists[i][k];
+            if(lists.every(function(arr){return arr.indexOf(item)!=-1})){
+                for(var j=0;j<lists.length;j++){
+                    lists[j].splice(lists[j].indexOf(item),1);
+                }
+            }
+        }
+        
+    }
+    return lists;
+}
