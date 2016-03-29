@@ -126,7 +126,7 @@ function startTextSearch(query, searchTags){
   var duration = 0.01
   var loop = 0;
   var page = 1;
-  var page_size = 5;
+  var page_size = 20;
   // var filter = "percussion"
   // var filter = "duration:[0 TO 3], tag:" + snd.id + ": " + snd.url + "</li>"
   var sort = "score"
