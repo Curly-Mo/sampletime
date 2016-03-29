@@ -112,12 +112,12 @@ function startTextSearch(query, searchTags){
   var duration = 0.01
   var loop = 0;
   var page = 1
-  var page_size = 20;
+  var page_size = 5;
   // var filter = "percussion"
   // var filter = "duration:[0 TO 3], tag:" + snd.id + ": " + snd.url + "</li>"
 
 
-  var filter = "duration:[0 TO 3], tag:synth"
+  var filter = "duration:[0 TO 3], tag:percussion"
   var sort = "score"
   var group = 1;
 
@@ -152,7 +152,7 @@ function startTextSearch(query, searchTags){
 // ==============================================================================
 // Add audio to bufferlist
 function loadTracks(data, overwrite_flag) {
-    // console.log("data", data)
+    console.log("load - ", data);
     if(overwrite_flag == 1){
       // console.log("loading tracks - overwrite");
       trackUrls = [];
@@ -164,8 +164,6 @@ function loadTracks(data, overwrite_flag) {
     }else{
       // console.log("loading tracks - add");
       for (var i = 0; i < NUM_SIMILAR; i++) {
-        console.log(data[i])
-        console.log(globalSounds[i].id)
         trackUrls2.push(data[i]);
       };
       bufferLoader2 = new BufferLoader(audioContext, data, bufferLoadCompleted);
@@ -335,7 +333,7 @@ function dragged(d) {
       .attr("cy", d.y = parseInt(d3.select(this).attr("cy")) + parseInt(d3.event.dy));
   // console.log("drag x y ", this.cx.baseVal.value, this.cy.baseVal.value)
 
-  console.log(d3.event.dx)
+  // console.log(d3.event.dx)
 
   d3.select(this)[0][0].currx = d3.select(this)[0][0].currx + d3.event.dx;
   d3.select(this)[0][0].curry = d3.select(this)[0][0].curry + d3.event.dy;

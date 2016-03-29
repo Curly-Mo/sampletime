@@ -1,8 +1,8 @@
 
 
-var RESULTS_TO_DISPLAY = 5;
+var RESULTS_TO_DISPLAY = 4;
 var theResults = [];
-var last_ID;
+var last_ID = 0;
 var curr_ID;
 var trackListSimilar = [];
 var SIMILAR_FLAG = 0;
@@ -47,6 +47,8 @@ function circleInit(data){
            }
            t.push(" "+tags[i]+" ");
          }
+
+         console.log("xx: ",curr_ID, last_ID);
          if(curr_ID != last_ID){
            container2.selectAll("circle").remove();    // remove old search nodes
            theResults = [];
@@ -55,6 +57,8 @@ function circleInit(data){
          if(theResults.length > 0){
            console.log("theResults to init ",theResults)
            zoomedCircleInit(theResults);
+           theResults = [];
+
          }
 
          div.transition()
@@ -145,7 +149,7 @@ function circleUpdate(){
        }
      })
      .attr("cy", function(d,i) {
-      y = Math.floor(returnedAnalysis[i].lowlevel.spectral_energy.dmean/math.max(energies)*100);
+      y = Math.floor(4*returnedAnalysis[i].lowlevel.spectral_energy.dmean/math.max(energies)*300);
       if(y < 200){
         y = y + 200;
       }
@@ -156,7 +160,7 @@ function circleUpdate(){
          var str1;
          var radius;
         if(returnedSounds){
-          r = -5*Math.log(returnedAnalysis[i].lowlevel.average_loudness);
+          r = -2*Math.log(returnedAnalysis[i].lowlevel.average_loudness);
         }else{
           r = 20;
         }
@@ -176,23 +180,26 @@ function circleUpdate(){
 // ==============================================================================
 // This function returns the similar sounds of a zoomed and hovered returnedSound
 function getSimilarHover(theSound){
-  // console.log("ever")
+  console.log("similar - sound: ", theSound)
   theSound.getSimilar(function(similar){
     for(i=1; i <= RESULTS_TO_DISPLAY; i++){
+      console.log(i, " - ", similar.results[i])
       theResults.push(similar.results[i]);
-
       freesound.getSound(similar.getSound(i).id,
           function(sound){
             trackListSimilar.push(sound.previews['preview-hq-mp3']);
         });
     }
   });
+  console.log("similar - results", theResults);
   NUM_SIMILAR = theResults.length;
 }
 
 // ==============================================================================
 // This function inits similar sound circles
 function zoomedCircleInit(data){
+  console.log("data: ", data);
+   loadTracks(trackListSimilar,0);
    container2.selectAll("circle").remove();    // remove old search nodes
    dot2 = container2.append("g")
    .attr("class", "dot")
@@ -207,14 +214,14 @@ function zoomedCircleInit(data){
      var inc = 3/2*math.pi/theResults.length;
      var r = dot[0][curr_ID].r.baseVal.value;
      var h = dot[0][curr_ID].currx;
-     return 3*r*math.cos(i*inc+math.pi) + h;
+     return 8*r*math.cos(i*inc+math.pi) + h;
    })
    .attr("cy", function(d,i) {
     //  i = i+math.pi;
      var inc = 3/2*math.pi/theResults.length;
      var r = dot[0][curr_ID].r.baseVal.value;
      var k = dot[0][curr_ID].curry;
-     return 3*r*math.sin(i*inc+math.pi) + k;
+     return 8*r*math.sin(i*inc+math.pi) + k;
    })
    .call(drag)
    .style("fill","lightcoral")
