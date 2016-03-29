@@ -16,9 +16,9 @@ var globalSounds = [];
 
 var SCALE_FLAG = 0;
 var NUM_TAGS = 3;
-TRANSLATE_Y = 0;
-TRANSLATE_X = 0;
-ZOOM_FLAG = 0;
+var TRANSLATE_Y = 0;
+var TRANSLATE_X = 0;
+var ZOOM_FLAG = 0;
 
 
 var margin = {top: -5, right: -5, bottom: -5, left: -5},
@@ -102,6 +102,18 @@ function startTextSearch(query, searchTags){
   container.selectAll("circle").remove();    // remove old search nodes
   container.selectAll("text").remove();    // remove old search nodes
   console.log("startTextSearch ",query, "tags ", searchTags)
+  var filter = "duration:[0 TO 3], tag:"
+
+  if(searchTags.length > 0){
+    console.log("some tags")
+    for(i = 0; i < searchTags.length; i++){
+      console.log(searchTags[i]);
+      filter += searchTags[i];
+    }
+  }else if (searchTags.length == 0) {
+    filter += "percussion";
+  }
+
   // Duncan's key
   token = "6111dd7939cc531db688360f2d70e96661531292";
   // Colin's key
@@ -111,13 +123,10 @@ function startTextSearch(query, searchTags){
   var fields = 'id,name,url,tags';
   var duration = 0.01
   var loop = 0;
-  var page = 1
-  var page_size = 20;
+  var page = 1;
+  var page_size = 5;
   // var filter = "percussion"
   // var filter = "duration:[0 TO 3], tag:" + snd.id + ": " + snd.url + "</li>"
-
-
-  var filter = "duration:[0 TO 3], tag:percussion"
   var sort = "score"
   var group = 1;
 
@@ -301,9 +310,6 @@ function updateCoords(){
     });
 }
 
-TRANSLATE_Y = 0;
-TRANSLATE_X = 0;
-
 function zoomed() {
   ZOOM_FLAG = 1;
   TRANSLATE_Y = d3.event.translate[0];
@@ -314,10 +320,7 @@ function zoomed() {
     SCALE_FLAG = 0;
   }
   container2.selectAll("circle").remove();    // remove old search nodes
-
-
   updateCoords();
-
   container.attr("transform", "translate(" + d3.event.translate + ")scale(" + d3.event.scale + ")");
 }
 
@@ -331,16 +334,10 @@ function dragged(d) {
   d3.select(this)
       .attr("cx", d.x = parseInt(d3.select(this).attr("cx")) + parseInt(d3.event.dx))
       .attr("cy", d.y = parseInt(d3.select(this).attr("cy")) + parseInt(d3.event.dy));
-  // console.log("drag x y ", this.cx.baseVal.value, this.cy.baseVal.value)
-
-  // console.log(d3.event.dx)
-
   d3.select(this)[0][0].currx = d3.select(this)[0][0].currx + d3.event.dx;
   d3.select(this)[0][0].curry = d3.select(this)[0][0].curry + d3.event.dy;
-
   // this.currx = d3.event.dx;
   // this.curry = d3.event.dy;
-
 }
 
 function dragended(d) {

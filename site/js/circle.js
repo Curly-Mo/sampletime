@@ -160,10 +160,11 @@ function circleUpdate(){
          var str1;
          var radius;
         if(returnedSounds){
-          r = -2*Math.log(returnedAnalysis[i].lowlevel.average_loudness);
+          r = 2*(Math.abs(Math.log(returnedAnalysis[i].lowlevel.average_loudness)+18));
         }else{
           r = 20;
         }
+        console.log("radius ",r)
         return r;
      })
      .on("click", function(d,i){
