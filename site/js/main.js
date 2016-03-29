@@ -37,7 +37,7 @@ var drag = d3.behavior.drag()
 
 var svg = d3.select("body").append("svg")
     .attr("width", width + margin.left + margin.right)
-    .attr("height", height + margin.top + margin.bottom)
+    .attr("height", height - 150)
   .append("g")
     .attr("transform", "translate(" + margin.left + "," + margin.right + ")")
     .call(zoom);
@@ -75,8 +75,10 @@ window.onload = function(){
 	}
 	request.send();
     //Load sounds/circles on pageload
-    //startTextSearch('percussion');
-    //window.setTimeout(hackButton,2000);
+    /*startTextSearch('');
+    window.setTimeout(function(){
+        loadTracks(trackList,1);
+    },5000);*/
 };
 
 $("#search").keydown(function(event){
