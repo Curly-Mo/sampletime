@@ -198,8 +198,9 @@ function getSimilarHover(theSound){
 // ==============================================================================
 // This function inits similar sound circles
 function zoomedCircleInit(data){
-  console.log("data: ", data);
+  // console.log("data: ", data);
    loadTracks(trackListSimilar,0);
+   trackListSimilar = [];
    container2.selectAll("circle").remove();    // remove old search nodes
    dot2 = container2.append("g")
    .attr("class", "dot")
