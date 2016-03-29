@@ -1,35 +1,38 @@
 require(["js/clusterfck/clusterfck"], function(clusterfck) {
 
 $('#clusterButton').click(function() {
+    cluster('dmean2');
+});
+function cluster(feature_name){
 	var samples = {};
-	var mfccs = [];
+	var features = [];
     for(var i=0;i<returnedAnalysis.length;i++){
         var analysis = returnedAnalysis[i];
         var sound = returnedSounds[i];
-		var mfcc = analysis.lowlevel.mfcc.dmean2;
-		mfcc.id = sound.id;
-		mfccs.push(mfcc);
+		var feature = analysis.lowlevel.mfcc.dmean2;
+		feature.id = sound.id;
+		features.push(feature);
 		samples[sound.id] = {};
 		samples[sound.id].sound = sound
 		samples[sound.id].analysis = analysis
     }   
-	//console.log(mfccs);
+	//console.log(features);
 	//console.log(samples);
 	var num_clusters = 4;
-	var clusters = clusterfck.kmeans(mfccs, num_clusters);
+	var clusters = clusterfck.kmeans(features, num_clusters);
     var centers = [];
-    var cluster_tags = [];
+    //var cluster_tags = [];
 	var colors = generate_colors(num_clusters);
     //set colors and cluster centers
     for(var i=0;i<Object.keys(clusters).length;i++){
         var cluster = clusters[i];
         centers[i] = average.apply(null, cluster);
-        cluster_tags[i] = [];
+        //cluster_tags[i] = [];
         for(var j=0;j<cluster.length;j++){
             var id = cluster[j].id;
             var elem = $('circle[data-id=' + id + ']');
             elem.css({ fill: 'rgb('+colors[i]+')'});
-            cluster_tags[i].push.apply(cluster_tags[i], samples[id].sound.tags.map(function(item){return item.toLowerCase()}));
+            //cluster_tags[i].push.apply(cluster_tags[i], samples[id].sound.tags.map(function(item){return item.toLowerCase()}));
         }
 	}
     var sounds = flatten(clusters);
@@ -46,9 +49,9 @@ $('#clusterButton').click(function() {
         }
 	}
     //position based on center distances
-    var positions = [50, window.innerWidth - 50, 50, window.innerHeight - 100]
+    var positions = [50, $('svg').innerWidth() - 50, 50, $('svg').innerHeight() - 50]
     // Position center tags
-    console.log(cluster_tags);
+    /*console.log(cluster_tags);
     cluster_tags = uniqify(cluster_tags);
     console.log(cluster_tags);
     container.selectAll('text').remove();
@@ -65,7 +68,7 @@ $('#clusterButton').click(function() {
                 .attr('x', x)
                 .attr('y', y)
                 .attr('fill', 'black')
-    }
+    }*/
     //console.log(centers);
     
     // Position each sound
@@ -78,14 +81,14 @@ $('#clusterButton').click(function() {
         var d2 = Math.min.apply(null, sounds[i].distances.slice(2,4));
         var d1_index = sounds[i].distances.indexOf(d1);
         var d2_index = sounds[i].distances.indexOf(d2);
-        var x = positions[d1_index] + window.innerWidth*(d1 * Math.pow(-1, d1_index % 2))/1.5;
-        var y = positions[d2_index] + window.innerHeight*(d2 * Math.pow(-1, d2_index % 2))/1.5;
+        var x = positions[d1_index] + positions[1]*(d1 * Math.pow(-1, d1_index % 2))/1.5;
+        var y = positions[d2_index] + positions[3]*(d2 * Math.pow(-1, d2_index % 2))/1.5;
         var id = sounds[i].id;
         var elem = $('circle[data-id=' + id + ']');
         elem.attr('cx', x);
         elem.attr('cy', y);
     }
-});
+}
 
 });
 
